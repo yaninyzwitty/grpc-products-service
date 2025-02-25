@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+option go_package = "./pb";
+
+import "google/protobuf/timestamp.proto";
+
+package products;
+
+service ProductsService {
+  rpc CreateCategory(CreateCategoryRequest) returns (CreateCategoryResponse);
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
+}
+
+// Product message definition
+message Product {
+  int64 id = 1;
+  string name = 2;
+  string description = 3;
+  float price = 4;
+  int32 stock = 5;
+  int64 category_id = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+// Category message definition
+message Category {
+  int64 id = 1;
+  string name = 2;
+  string description = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+// CreateProduct request and response
+message CreateProductRequest {
+  string name = 1;
+  string description = 2;
+  float price = 3;
+  int32 stock = 4;
+  int64 category_id = 5;
+}
+
+message CreateProductResponse {
+  Product product = 1;
+}
+
+// GetProduct request and response
+message GetProductRequest {
+  int64 id = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+}
+
+// ListProducts request and response
+message ListProductsRequest {
+  int32 page_size = 1;
+  int32 page_number = 2;
+  string sort_by = 3;
+  bool descending = 4;
+  int64 category_id = 5; // Optional filter by category
+}
+
+message ListProductsResponse {
+  repeated Product products = 1;
+  int32 total_count = 2;
+  int32 total_pages = 3;
+}
+
+// UpdateProduct request and response
+message UpdateProductRequest {
+  int64 id = 1;
+  string name = 2;
+  string description = 3;
+  float price = 4;
+  int32 stock = 5;
+  int64 category_id = 6;
+}
+
+message UpdateProductResponse {
+  Product product = 1;
+}
+
+// DeleteProduct request and response
+message DeleteProductRequest {
+  int64 id = 1;
+}
+
+message DeleteProductResponse {
+  bool success = 1;
+}
+
+// CreateCategory request and response
+message CreateCategoryRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message CreateCategoryResponse {
+  Category category = 1;
+}
