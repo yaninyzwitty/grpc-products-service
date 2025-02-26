@@ -25,7 +25,7 @@ type DB struct {
 
 type Pulsar struct {
 	Uri              string `yaml:"uri"`
-	TopicName        string `yaml:"topicName"`
+	TopicName        string `yaml:"topic_name"`
 	SubscriptionName string `yaml:"subscriptionName"` //incase of consumer
 }
 
