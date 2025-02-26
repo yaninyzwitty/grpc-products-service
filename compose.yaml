@@ -1,0 +1,20 @@
+---
+services:
+  grpc-products-service:
+    image: yaninyzwitty/grpc-products-service
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "50051:50051"
+    networks:
+      - private_network
+
+
+networks:
+  private_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "10.0.0.0/19"
+          gateway: "10.0.0.1"
