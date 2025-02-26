@@ -30,3 +30,4 @@ CREATE TABLE IF NOT EXISTS products_outbox (
     event_type TEXT,
     PRIMARY KEY((bucket), id)
 )
+

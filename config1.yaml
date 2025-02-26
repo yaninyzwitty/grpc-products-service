@@ -1,0 +1,10 @@
+server:
+  port: 50051
+database:
+  username: token
+  path: ./secure-connect.zip #TODO-change this to correct path when deployed to fargate
+  timeout: 30
+pulsar:
+  uri: pulsar+ssl://pulsar-aws-eucentral1.streaming.datastax.com:6651
+  topic_name: persistent://witty-cluster/default/products_topic
+  token: some_token  
