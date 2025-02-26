@@ -10,11 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/yaninyzwitty/grpc-products-service/helpers"
 	"github.com/yaninyzwitty/grpc-products-service/internal/controllers"
 	"github.com/yaninyzwitty/grpc-products-service/internal/database"
-	"github.com/yaninyzwitty/grpc-products-service/internal/pkg"
 	"github.com/yaninyzwitty/grpc-products-service/internal/queue"
 	"github.com/yaninyzwitty/grpc-products-service/pb"
 	"github.com/yaninyzwitty/grpc-products-service/snowflake"
@@ -32,22 +30,10 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	var cfg pkg.Config
-	file, err := os.Open("config.yaml") //TODO- change this
-	if err != nil {
-		slog.Error("failed to open config.yaml", "error", err)
-		os.Exit(1)
-	}
-	defer file.Close()
 
-	if err := cfg.LoadConfig(file); err != nil {
-		slog.Error("failed to load config", "error", err)
-		os.Exit(1)
-	}
-
-	err = godotenv.Load()
+	cfg, err := helpers.FetchFromAWSConfig(ctx)
 	if err != nil {
-		slog.Error("failed to load .env file", "error", err)
+		slog.Error("failed to load config from AWS", "error", err)
 		os.Exit(1)
 	}
 
@@ -108,6 +94,29 @@ func main() {
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	stopCH := make(chan os.Signal, 1)
+
+	// polling approach
+
+	go func() {
+		ticker := time.NewTicker(4 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				// poll messages
+				if err := helpers.ProcessMessages(context.Background(), session, pulsarProducer); err != nil {
+					slog.Error("failed to process messages", "error", err)
+					os.Exit(1)
+				}
+			case <-stopCH:
+				return
+			}
+
+		}
+	}()
+
 	go func() {
 		sig := <-sigChan
 		slog.Info("Received shutdown signal", "signal", sig)
