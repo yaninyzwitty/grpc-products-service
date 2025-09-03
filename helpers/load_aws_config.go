@@ -15,6 +15,7 @@ import (
 )
 
 func FetchFromAWSConfig(ctx context.Context) (*pkg.Config, error) {
+	// Load AWS default config (from env, profile, IAM role, etc.)
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %v", err)
@@ -22,9 +23,10 @@ func FetchFromAWSConfig(ctx context.Context) (*pkg.Config, error) {
 
 	// Create AWS SSM client
 	ssmClient := ssm.NewFromConfig(cfg)
-	// Fetch the parameter from AWS Parameter Store
-	param, err := ssmClient.GetParameter(ctx, &ssm.GetParameterInput{
-		Name:           aws.String("/myapp/config"), // AWS SSM parameter name
+
+	// Fetch YAML config from SSM Parameter Store
+	ssmParam, err := ssmClient.GetParameter(ctx, &ssm.GetParameterInput{
+		Name:           aws.String("/myapp/config.yaml"), // match your stored key
 		WithDecryption: aws.Bool(true),
 	})
 	if err != nil {
@@ -32,7 +34,7 @@ func FetchFromAWSConfig(ctx context.Context) (*pkg.Config, error) {
 	}
 
 	configData := &pkg.Config{}
-	err = yaml.Unmarshal([]byte(strings.TrimSpace(*param.Parameter.Value)), configData)
+	err = yaml.Unmarshal([]byte(strings.TrimSpace(*ssmParam.Parameter.Value)), configData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %v", err)
 	}
@@ -46,15 +48,15 @@ func FetchFromAWSConfig(ctx context.Context) (*pkg.Config, error) {
 		return nil, fmt.Errorf("failed to fetch environment variables: %v", err)
 	}
 
-	// Set environment variables
-	for _, param := range envParams.Parameters {
-		switch *param.Name {
+	// Set environment variables in process
+	for _, p := range envParams.Parameters {
+		switch *p.Name {
 		case "/myapp/ASTRA_TOKEN":
-			os.Setenv("ASTRA_TOKEN", *param.Value)
+			_ = os.Setenv("ASTRA_TOKEN", *p.Value)
 		case "/myapp/PULSAR_TOKEN":
-			os.Setenv("PULSAR_TOKEN", *param.Value)
+			_ = os.Setenv("PULSAR_TOKEN", *p.Value)
 		}
 	}
-	return configData, nil
 
+	return configData, nil
 }
