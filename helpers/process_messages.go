@@ -22,7 +22,7 @@ type ProductOutbox struct {
 var (
 	getProductsFromOutboxQuery = `
 		SELECT id, bucket, payload, event_type 
-		FROM products_keyspace.products_outbox 
+		FROM threads_keyspace.products_outbox 
 		WHERE bucket = ? 
 		ORDER BY id ASC;
 	`
@@ -115,7 +115,7 @@ func deleteMessage(ctx context.Context, session *gocql.Session, msgID gocql.UUID
 	slog.Info("Deleting message", "messageID", msgID)
 
 	return session.Query(`
-	DELETE FROM products_keyspace.products_outbox WHERE bucket = ? AND id = ?`,
+	DELETE FROM threads_keyspace.products_outbox WHERE bucket = ? AND id = ?`,
 		bucket, msgID,
 	).WithContext(ctx).Exec()
 

@@ -29,5 +29,5 @@ CREATE TABLE IF NOT EXISTS products_outbox (
     payload TEXT,
     event_type TEXT,
     PRIMARY KEY((bucket), id)
-)
+);
 

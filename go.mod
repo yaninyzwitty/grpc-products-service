@@ -1,6 +1,6 @@
 module github.com/yaninyzwitty/grpc-products-service
 
-go 1.23.4
+go 1.25.0
 
 require (
 	github.com/apache/pulsar-client-go v0.14.0
