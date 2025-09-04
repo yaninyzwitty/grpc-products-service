@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/yaninyzwitty/grpc-products-service/helpers"
 	"github.com/yaninyzwitty/grpc-products-service/internal/controllers"
 	"github.com/yaninyzwitty/grpc-products-service/internal/database"
@@ -34,6 +35,21 @@ func main() {
 	cfg, err := helpers.FetchFromAWSConfig(ctx)
 	if err != nil {
 		slog.Error("failed to load config from AWS", "error", err)
+		os.Exit(1)
+	}
+
+	// file, err := os.Open("config.yaml")
+	// if err != nil {
+	// 	slog.Error("failed to open config file", "error", err)
+	// 	os.Exit(1)
+	// }
+	// if err := cfg.LoadConfig(file); err != nil {
+	// 	slog.Error("failed to load config", "error", err)
+	// 	os.Exit(1)
+	// }
+
+	if err := godotenv.Load(); err != nil {
+		slog.Error("failed to load environment variables", "error", err)
 		os.Exit(1)
 	}
 

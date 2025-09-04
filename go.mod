@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.56.13
 	github.com/datastax/gocql-astra v0.0.0-20240612111451-db7831681c24
 	github.com/gocql/gocql v1.7.0
+	github.com/joho/godotenv v1.5.1
 	github.com/sony/sonyflake v1.2.0
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5
