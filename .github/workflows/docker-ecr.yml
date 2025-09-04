@@ -29,20 +29,42 @@ jobs:
 
       - name: Ensure ECR repository exists
         run: |
+          set -euo pipefail
+          echo "Checking if ECR repository exists..."
           aws ecr describe-repositories --repository-names my-app || \
           aws ecr create-repository --repository-name my-app
 
       - name: Log in to Amazon ECR
         run: |
+          set -euo pipefail
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
           echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "Logging in to ECR for account $AWS_ACCOUNT_ID in region $AWS_DEFAULT_REGION"
           aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
             docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+          echo "✅ Docker login successful"
 
       - name: Build and Push Docker Image
         env:
           IMAGE_NAME: my-app
         run: |
+          set -euo pipefail
+          echo "Building Docker image..."
           docker build -t $IMAGE_NAME:latest .
-          docker tag $IMAGE_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_NAME:latest
-          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_NAME:latest
+
+          echo "Tagging image..."
+          IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_NAME:latest
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          docker tag $IMAGE_NAME:latest $IMAGE_URI
+
+          echo "Pushing image to $IMAGE_URI"
+          docker push $IMAGE_URI
+
+          echo "✅ Docker image successfully pushed to ECR"
+
+      - name: Verify image in ECR
+        run: |
+          set -euo pipefail
+          echo "Checking pushed image in ECR..."
+          aws ecr describe-images --repository-name my-app --region $AWS_DEFAULT_REGION
+          echo "✅ Image verification completed"
