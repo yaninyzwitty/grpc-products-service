@@ -17,12 +17,14 @@ import (
 	"github.com/yaninyzwitty/grpc-products-service/internal/queue"
 	"github.com/yaninyzwitty/grpc-products-service/pb"
 	"github.com/yaninyzwitty/grpc-products-service/snowflake"
+
 	"google.golang.org/grpc"
+	health "google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
 
 func main() {
-
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	})
@@ -37,16 +39,6 @@ func main() {
 		slog.Error("failed to load config from AWS", "error", err)
 		os.Exit(1)
 	}
-
-	// file, err := os.Open("config.yaml")
-	// if err != nil {
-	// 	slog.Error("failed to open config file", "error", err)
-	// 	os.Exit(1)
-	// }
-	// if err := cfg.LoadConfig(file); err != nil {
-	// 	slog.Error("failed to load config", "error", err)
-	// 	os.Exit(1)
-	// }
 
 	if err := godotenv.Load(); err != nil {
 		slog.Error("failed to load environment variables", "error", err)
@@ -66,13 +58,11 @@ func main() {
 	}
 
 	db := database.NewAstraDB()
-
 	session, err := db.Connect(ctx, astraCfg, 30*time.Second)
 	if err != nil {
 		slog.Error("failed to connect to database", "error", err)
 		os.Exit(1)
 	}
-
 	defer session.Close()
 
 	pulsarCfg := &queue.PulsarConfig{
@@ -93,7 +83,6 @@ func main() {
 		slog.Error("failed to create pulsar producer", "error", err)
 		os.Exit(1)
 	}
-
 	defer pulsarProducer.Close()
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Server.Port))
@@ -103,17 +92,29 @@ func main() {
 	}
 
 	productController := controllers.NewProductController(session)
-	server := grpc.NewServer()
-	reflection.Register(server)
 
+	server := grpc.NewServer()
+
+	// --- Register services ---
 	pb.RegisterProductsServiceServer(server, productController)
 
+	// Reflection for debugging
+	reflection.Register(server)
+
+	// --- Health check service ---
+	healthServer := health.NewServer()
+	// Report all services healthy by default
+	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+	// Mark your specific service as healthy
+	healthServer.SetServingStatus("grpc-products-service", healthpb.HealthCheckResponse_SERVING)
+	healthpb.RegisterHealthServer(server, healthServer)
+
+	// --- Shutdown signals ---
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	stopCH := make(chan os.Signal, 1)
 
-	// polling approach
-
+	// Polling messages
 	go func() {
 		ticker := time.NewTicker(4 * time.Second)
 		defer ticker.Stop()
@@ -121,7 +122,6 @@ func main() {
 		for {
 			select {
 			case <-ticker.C:
-				// poll messages
 				if err := helpers.ProcessMessages(context.Background(), session, pulsarProducer); err != nil {
 					slog.Error("failed to process messages", "error", err)
 					os.Exit(1)
@@ -129,18 +129,17 @@ func main() {
 			case <-stopCH:
 				return
 			}
-
 		}
 	}()
 
+	// Graceful shutdown
 	go func() {
 		sig := <-sigChan
 		slog.Info("Received shutdown signal", "signal", sig)
 		slog.Info("Shutting down gRPC server...")
-
-		// Gracefully stop the gRPC server
+		healthServer.SetServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING) // mark unhealthy
 		server.GracefulStop()
-		cancel() // Cancel context for other goroutines
+		cancel()
 		slog.Info("gRPC server has been stopped gracefully")
 	}()
 
@@ -149,5 +148,4 @@ func main() {
 		slog.Error("gRPC server encountered an error while serving", "error", err)
 		os.Exit(1)
 	}
-
 }
