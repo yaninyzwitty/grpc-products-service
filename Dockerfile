@@ -12,7 +12,7 @@ COPY . ./
 COPY secure-connect.zip /app/secure-connect.zip
 
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /gqlgen-subscriptions-go
+RUN CGO_ENABLED=0 GOOS=linux go build -o /grpc-products-sevice
 
 # Run the tests in the container
 FROM build-stage AS run-test-stage
@@ -23,11 +23,11 @@ FROM gcr.io/distroless/base-debian11 AS build-release-stage
 
 WORKDIR /
 
-COPY --from=build-stage /gqlgen-subscriptions-go /gqlgen-subscriptions-go
+COPY --from=build-stage /grpc-products-sevice /grpc-products-sevice
 COPY --from=build-stage /app/secure-connect.zip ./secure-connect.zip
 
 EXPOSE 50051
 
 USER nonroot:nonroot
 
-ENTRYPOINT ["/gqlgen-subscriptions-go"]
+ENTRYPOINT ["/grpc-products-sevice"]
