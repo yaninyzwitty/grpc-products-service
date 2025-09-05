@@ -12,6 +12,7 @@ permissions:
 env:
   AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
   AWS_DEFAULT_REGION: us-east-2
+  IMAGE_NAME: ${{ github.event.repository.name }}
 
 jobs:
   build-and-push:
@@ -30,9 +31,9 @@ jobs:
       - name: Ensure ECR repository exists
         run: |
           set -euo pipefail
-          echo "Checking if ECR repository exists..."
-          aws ecr describe-repositories --repository-names my-app || \
-          aws ecr create-repository --repository-name my-app
+          echo "Checking if ECR repository exists for $IMAGE_NAME..."
+          aws ecr describe-repositories --repository-names $IMAGE_NAME || \
+          aws ecr create-repository --repository-name $IMAGE_NAME
 
       - name: Log in to Amazon ECR
         run: |
@@ -45,11 +46,9 @@ jobs:
           echo "✅ Docker login successful"
 
       - name: Build and Push Docker Image
-        env:
-          IMAGE_NAME: my-app
         run: |
           set -euo pipefail
-          echo "Building Docker image..."
+          echo "Building Docker image $IMAGE_NAME..."
           docker build -t $IMAGE_NAME:latest .
 
           echo "Tagging image..."
@@ -66,5 +65,5 @@ jobs:
         run: |
           set -euo pipefail
           echo "Checking pushed image in ECR..."
-          aws ecr describe-images --repository-name my-app --region $AWS_DEFAULT_REGION
+          aws ecr describe-images --repository-name $IMAGE_NAME --region $AWS_DEFAULT_REGION
           echo "✅ Image verification completed"
