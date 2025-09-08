@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/yaninyzwitty/grpc-products-service/helpers"
 	"github.com/yaninyzwitty/grpc-products-service/internal/controllers"
 	"github.com/yaninyzwitty/grpc-products-service/internal/database"
@@ -39,10 +40,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// if err := godotenv.Load(); err != nil {
-	// 	slog.Error("failed to load environment variables", "error", err)
-	// 	os.Exit(1)
-	// }
+	if err := godotenv.Load(); err != nil {
+		slog.Error("failed to load environment variables", "error", err)
+	}
 
 	err = snowflake.InitSonyFlake()
 	if err != nil {
