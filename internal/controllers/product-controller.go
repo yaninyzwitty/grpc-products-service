@@ -26,7 +26,7 @@ func (c *ProductController) CreateCategory(ctx context.Context, req *pb.CreateCa
 	if req.Name == "" || req.Description == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "Name and description are required")
 	}
-	createCategoryQuery := `INSERT INTO threads_keyspace.categories(id, name, description, created_at) VALUES(?, ?, ?, ?)`
+	createCategoryQuery := `INSERT INTO chat.categories(id, name, description, created_at) VALUES(?, ?, ?, ?)`
 
 	categoryId, err := snowflake.GenerateID()
 	if err != nil {
@@ -90,7 +90,7 @@ func (c *ProductController) CreateProduct(ctx context.Context, req *pb.CreatePro
 	batch.WithContext(ctx)
 
 	batch.Query(
-		`INSERT INTO threads_keyspace.products 
+		`INSERT INTO chat.products 
 		(id, name, description, price, stock, category_id, created_at, updated_at) 
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		product.Id, product.Name, product.Description, product.Price,
@@ -99,7 +99,7 @@ func (c *ProductController) CreateProduct(ctx context.Context, req *pb.CreatePro
 
 	// Add outbox event query
 	batch.Query(
-		`INSERT INTO threads_keyspace.products_outbox 
+		`INSERT INTO chat.products_outbox 
 		(id, bucket, payload, event_type) 
 		VALUES (?, ?, ?, ?)`,
 		outboxID, bucket, payload, eventType,
