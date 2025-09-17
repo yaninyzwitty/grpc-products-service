@@ -14,7 +14,6 @@ import (
 	"github.com/yaninyzwitty/grpc-products-service/helpers"
 	"github.com/yaninyzwitty/grpc-products-service/internal/controllers"
 	"github.com/yaninyzwitty/grpc-products-service/internal/database"
-	"github.com/yaninyzwitty/grpc-products-service/internal/pkg"
 	"github.com/yaninyzwitty/grpc-products-service/internal/queue"
 	"github.com/yaninyzwitty/grpc-products-service/pb"
 	"github.com/yaninyzwitty/grpc-products-service/snowflake"
@@ -26,7 +25,6 @@ import (
 )
 
 func main() {
-
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	})
@@ -36,22 +34,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	file, err := os.Open("config.yaml")
+	cfg, err := helpers.FetchFromAWSConfig(ctx)
 	if err != nil {
-		slog.Error("failed to open")
+		slog.Error("failed to load config from AWS", "error", err)
 		os.Exit(1)
 	}
-	defer file.Close()
-	cfg := pkg.Config{}
-	if err := cfg.LoadConfig(file); err != nil {
-		slog.Error("failed to load file")
-	}
-
-	// cfg, err := helpers.FetchFromAWSConfig(ctx)
-	// if err != nil {
-	// 	slog.Error("failed to load config from AWS", "error", err)
-	// 	os.Exit(1)
-	// }
 
 	if err := godotenv.Load(); err != nil {
 		slog.Error("failed to load environment variables", "error", err)
